@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS request for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Login with admin credentials",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "email": "admin",
+        "password": "magazinSport5"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "user": {
+          "email": "admin",
+          "isAdmin": true
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Login with invalid credentials",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "email": "invalid",
+        "password": "wrong"
+      },
+      "expectedStatus": 401
+    }
+  ]
+}

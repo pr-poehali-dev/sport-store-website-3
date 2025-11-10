@@ -9,6 +9,8 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
+import AdminDashboard from '@/components/AdminDashboard';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   id: number;
@@ -46,6 +48,11 @@ export default function Index() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const { toast } = useToast();
 
   const categories = ['Обувь', 'Одежда', 'Аксессуары'];
   const colors = ['Черный', 'Белый', 'Синий', 'Серый'];
@@ -72,6 +79,74 @@ export default function Index() {
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+
+  const handleLogin = async () => {
+    if (!loginEmail || !loginPassword) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните все поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoggingIn(true);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/7d26f6e9-c56d-42c8-ad1a-3c198dfec864', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.user.isAdmin) {
+          setIsAdmin(true);
+          setIsAuthOpen(false);
+          toast({
+            title: 'Успешный вход',
+            description: 'Добро пожаловать в админ-панель!',
+          });
+        } else {
+          toast({
+            title: 'Вход выполнен',
+            description: `Добро пожаловать, ${data.user.name}!`,
+          });
+          setIsAuthOpen(false);
+        }
+      } else {
+        toast({
+          title: 'Ошибка входа',
+          description: 'Неверный логин или пароль',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось подключиться к серверу',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+    setLoginEmail('');
+    setLoginPassword('');
+    toast({
+      title: 'Выход выполнен',
+      description: 'Вы вышли из админ-панели',
+    });
+  };
+
+  if (isAdmin) {
+    return <AdminDashboard onLogout={handleLogout} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,13 +270,29 @@ export default function Index() {
             )}
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" placeholder="example@mail.com" />
+              <Input 
+                type="text" 
+                placeholder="example@mail.com" 
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Пароль</Label>
-              <Input type="password" placeholder="••••••••" />
+              <Input 
+                type="password" 
+                placeholder="••••••••"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
             </div>
-            <Button className="w-full">{authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}</Button>
+            <Button 
+              className="w-full" 
+              onClick={handleLogin}
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? 'Вход...' : (authMode === 'login' ? 'Войти' : 'Зарегистрироваться')}
+            </Button>
             <p className="text-center text-sm text-muted-foreground">
               {authMode === 'login' ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
               <button 
